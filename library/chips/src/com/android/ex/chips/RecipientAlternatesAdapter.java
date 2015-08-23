@@ -21,9 +21,11 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.graphics.drawable.StateListDrawable;
 import android.net.Uri;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.Contacts;
+import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.text.util.Rfc822Token;
 import android.text.util.Rfc822Tokenizer;
@@ -41,6 +43,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -49,7 +52,7 @@ import java.util.Set;
  * queried by email or by phone number.
  */
 public class RecipientAlternatesAdapter extends CursorAdapter {
-    static final int MAX_LOOKUPS = 50;
+    public static final int MAX_LOOKUPS = 50;
 
     private final long mCurrentId;
 
@@ -63,6 +66,7 @@ public class RecipientAlternatesAdapter extends CursorAdapter {
     public static final int QUERY_TYPE_PHONE = 1;
     private final Long mDirectoryId;
     private DropdownChipLayouter mDropdownChipLayouter;
+    private final StateListDrawable mDeleteDrawable;
 
     private static final Map<String, String> sCorrectedPhotoUris = new HashMap<String, String>();
 
@@ -87,7 +91,6 @@ public class RecipientAlternatesAdapter extends CursorAdapter {
      * @param context Context.
      * @param inAddresses Array of addresses on which to perform the lookup.
      * @param callback RecipientMatchCallback called when a match or matches are found.
-     * @return HashMap<String,RecipientEntry>
      */
     public static void getMatchingRecipients(Context context, BaseRecipientAdapter adapter,
             ArrayList<String> inAddresses, int addressType, Account account,
@@ -103,8 +106,16 @@ public class RecipientAlternatesAdapter extends CursorAdapter {
         StringBuilder bindString = new StringBuilder();
         // Create the "?" string and set up arguments.
         for (int i = 0; i < addressesSize; i++) {
-            Rfc822Token[] tokens = Rfc822Tokenizer.tokenize(inAddresses.get(i).toLowerCase());
-            addresses.add(tokens.length > 0 ? tokens[0].getAddress() : inAddresses.get(i));
+            if (addressType == QUERY_TYPE_EMAIL) {
+                Rfc822Token[] tokens = Rfc822Tokenizer.tokenize(inAddresses.get(i).toLowerCase());
+                addresses.add(tokens.length > 0 ? tokens[0].getAddress() : inAddresses.get(i));
+            } else {
+                String number = PhoneNumberUtils.formatNumberToE164(inAddresses.get(i),
+                        Locale.getDefault().getCountry());
+                if (number != null) {
+                    addresses.add(number);
+                }
+            }
             bindString.append("?");
             if (i < addressesSize - 1) {
                 bindString.append(",");
@@ -133,9 +144,31 @@ public class RecipientAlternatesAdapter extends CursorAdapter {
                 c.close();
             }
         }
+
+        final Set<String> matchesNotFound = new HashSet<String>();
+
+        getMatchingRecipientsFromDirectoryQueries(context, recipientEntries,
+                addresses, account, matchesNotFound, query, callback);
+
+        getMatchingRecipientsFromExtensionMatcher(adapter, matchesNotFound, callback);
+    }
+
+    public static void getMatchingRecipientsFromDirectoryQueries(Context context,
+            Map<String, RecipientEntry> recipientEntries, Set<String> addresses,
+            Account account, Set<String> matchesNotFound,
+            RecipientMatchCallback callback) {
+        getMatchingRecipientsFromDirectoryQueries(
+                context, recipientEntries, addresses, account,
+                matchesNotFound, Queries.EMAIL, callback);
+    }
+
+    private static void getMatchingRecipientsFromDirectoryQueries(Context context,
+            Map<String, RecipientEntry> recipientEntries, Set<String> addresses,
+            Account account, Set<String> matchesNotFound, Queries.Query query,
+            RecipientMatchCallback callback) {
         // See if any entries did not resolve; if so, we need to check other
         // directories
-        final Set<String> matchesNotFound = new HashSet<String>();
+
         if (recipientEntries.size() < addresses.size()) {
             final List<DirectorySearchParams> paramsList;
             Cursor directoryCursor = null;
@@ -200,7 +233,10 @@ public class RecipientAlternatesAdapter extends CursorAdapter {
                 }
             }
         }
+    }
 
+    public static void getMatchingRecipientsFromExtensionMatcher(BaseRecipientAdapter adapter,
+            Set<String> matchesNotFound, RecipientMatchCallback callback) {
         // If no matches found in contact provider or the directories, try the extension
         // matcher.
         // todo (aalbert): This whole method needs to be in the adapter?
@@ -335,6 +371,13 @@ public class RecipientAlternatesAdapter extends CursorAdapter {
     public RecipientAlternatesAdapter(Context context, long contactId, Long directoryId,
             String lookupKey, long currentId, int queryMode, OnCheckedItemChangedListener listener,
             DropdownChipLayouter dropdownChipLayouter) {
+        this(context, contactId, directoryId, lookupKey, currentId, queryMode, listener,
+                dropdownChipLayouter, null);
+    }
+
+    public RecipientAlternatesAdapter(Context context, long contactId, Long directoryId,
+            String lookupKey, long currentId, int queryMode, OnCheckedItemChangedListener listener,
+            DropdownChipLayouter dropdownChipLayouter, StateListDrawable deleteDrawable) {
         super(context,
                 getCursorForConstruction(context, contactId, directoryId, lookupKey, queryMode), 0);
         mCurrentId = currentId;
@@ -342,6 +385,7 @@ public class RecipientAlternatesAdapter extends CursorAdapter {
         mCheckedItemChangedListener = listener;
 
         mDropdownChipLayouter = dropdownChipLayouter;
+        mDeleteDrawable = deleteDrawable;
     }
 
     private static Cursor getCursorForConstruction(Context context, long contactId,
@@ -377,7 +421,7 @@ public class RecipientAlternatesAdapter extends CursorAdapter {
             selection.append(Queries.PHONE.getProjection()[Queries.Query.CONTACT_ID]);
             selection.append(" = ?");
 
-            if (lookupKey == null) {
+            if (directoryId == null || lookupKey == null) {
                 uri = Queries.PHONE.getContentUri();
                 desiredMimeType = null;
             } else {
@@ -397,7 +441,7 @@ public class RecipientAlternatesAdapter extends CursorAdapter {
         }
 
         final Cursor resultCursor = removeUndesiredDestinations(cursor, desiredMimeType, lookupKey);
-        if (cursor != null) cursor.close();
+        cursor.close();
 
         return resultCursor;
     }
@@ -421,10 +465,6 @@ public class RecipientAlternatesAdapter extends CursorAdapter {
     // Visible for testing
     static Cursor removeUndesiredDestinations(final Cursor original, final String desiredMimeType,
             final String lookupKey) {
-        if (original == null) {
-            return new MatrixCursor(Queries.PHONE.getProjection());
-        }
-
         final MatrixCursor result = new MatrixCursor(
                 original.getColumnNames(), original.getCount());
         final HashSet<String> destinationsSeen = new HashSet<String>();
@@ -548,7 +588,7 @@ public class RecipientAlternatesAdapter extends CursorAdapter {
         Cursor cursor = getCursor();
         cursor.moveToPosition(position);
         if (convertView == null) {
-            convertView = mDropdownChipLayouter.newView();
+            convertView = mDropdownChipLayouter.newView(AdapterType.RECIPIENT_ALTERNATES);
         }
         if (cursor.getLong(Queries.Query.DATA_ID) == mCurrentId) {
             mCheckedItemPosition = position;
@@ -566,12 +606,12 @@ public class RecipientAlternatesAdapter extends CursorAdapter {
         RecipientEntry entry = getRecipientEntry(position);
 
         mDropdownChipLayouter.bindView(view, null, entry, position,
-                AdapterType.RECIPIENT_ALTERNATES, null);
+                AdapterType.RECIPIENT_ALTERNATES, null, mDeleteDrawable);
     }
 
     @Override
     public View newView(Context context, Cursor cursor, ViewGroup parent) {
-        return mDropdownChipLayouter.newView();
+        return mDropdownChipLayouter.newView(AdapterType.RECIPIENT_ALTERNATES);
     }
 
     /*package*/ static interface OnCheckedItemChangedListener {

@@ -16,9 +16,9 @@
 
 package com.android.ex.chips.recipientchip;
 
-import com.android.ex.chips.RecipientEntry;
-
 import android.text.TextUtils;
+
+import com.android.ex.chips.RecipientEntry;
 
 class SimpleRecipientChip implements BaseRecipientChip {
     private final CharSequence mDisplay;

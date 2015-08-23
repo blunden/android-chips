@@ -35,7 +35,7 @@ public class RecipientEntry {
     /* package */ static final int GENERATED_CONTACT = -2;
 
     /** Used when {@link #mDestinationType} is invalid and thus shouldn't be used for display. */
-    /* package */ static final int INVALID_DESTINATION_TYPE = -1;
+    public static final int INVALID_DESTINATION_TYPE = -1;
 
     public static final int ENTRY_TYPE_PERSON = 0;
 
@@ -76,10 +76,10 @@ public class RecipientEntry {
      */
     private byte[] mPhotoBytes;
 
-    /** See {@link ContactsContract.Contacts#LOOKUP_KEY} */
+    /** See {@link android.provider.ContactsContract.ContactsColumns#LOOKUP_KEY} */
     private final String mLookupKey;
 
-    private RecipientEntry(int entryType, String displayName, String destination,
+    protected RecipientEntry(int entryType, String displayName, String destination,
             int destinationType, String destinationLabel, long contactId, Long directoryId,
             long dataId, Uri photoThumbnailUri, boolean isFirstLevel, boolean isValid,
             String lookupKey) {
@@ -158,22 +158,6 @@ public class RecipientEntry {
                 isValid, null /* lookupKey */);
     }
 
-    public static RecipientEntry constructGeneratedEntry(String display, String address, Uri photoThumbnailUri,
-                                                         boolean isValid) {
-        return new RecipientEntry(ENTRY_TYPE_PERSON, display, address, INVALID_DESTINATION_TYPE,
-                null, GENERATED_CONTACT, null /* directoryId */, GENERATED_CONTACT, photoThumbnailUri, true,
-                isValid, null /* lookupKey */);
-    }
-
-    public static RecipientEntry constructGeneratedEntry(String display, String address, Uri photoThumbnailUri,
-                                                         byte[] photoBytes, boolean isValid) {
-        RecipientEntry entry = new RecipientEntry(ENTRY_TYPE_PERSON, display, address, INVALID_DESTINATION_TYPE,
-                null, GENERATED_CONTACT, null /* directoryId */, GENERATED_CONTACT, photoThumbnailUri, true,
-                isValid, null /* lookupKey */);
-        entry.setPhotoBytes(photoBytes);
-        return entry;
-    }
-
     public static RecipientEntry constructTopLevelEntry(String displayName, int displayNameSource,
             String destination, int destinationType, String destinationLabel, long contactId,
             Long directoryId, long dataId, Uri photoThumbnailUri, boolean isValid,
@@ -190,7 +174,7 @@ public class RecipientEntry {
         return new RecipientEntry(ENTRY_TYPE_PERSON, pickDisplayName(displayNameSource,
                 displayName, destination), destination, destinationType, destinationLabel,
                 contactId, directoryId, dataId, (thumbnailUriAsString != null
-                        ? Uri.parse(thumbnailUriAsString) : null), true, isValid, lookupKey);
+                ? Uri.parse(thumbnailUriAsString) : null), true, isValid, lookupKey);
     }
 
     public static RecipientEntry constructSecondLevelEntry(String displayName,
@@ -200,7 +184,7 @@ public class RecipientEntry {
         return new RecipientEntry(ENTRY_TYPE_PERSON, pickDisplayName(displayNameSource,
                 displayName, destination), destination, destinationType, destinationLabel,
                 contactId, directoryId, dataId, (thumbnailUriAsString != null
-                        ? Uri.parse(thumbnailUriAsString) : null), false, isValid, lookupKey);
+                ? Uri.parse(thumbnailUriAsString) : null), false, isValid, lookupKey);
     }
 
     public int getEntryType() {
@@ -212,7 +196,7 @@ public class RecipientEntry {
     }
 
     public String getDestination() {
-        return mDestination;
+        return mDestination != null ? mDestination.trim() : null;
     }
 
     public int getDestinationType() {
@@ -265,8 +249,21 @@ public class RecipientEntry {
         return mLookupKey;
     }
 
+    /** @hide **/
+    protected String getAddress() {
+        return mDisplayName + " <" + mDestination + ">";
+    }
+
     @Override
     public String toString() {
-        return mDisplayName + " <" + mDestination + ">, isValid=" + mIsValid;
+        return getAddress() + ", isValid=" + mIsValid;
+    }
+
+    /**
+     * Returns if entry represents the same person as this instance. The default implementation
+     * checks whether the contact ids are the same, and subclasses may opt to override this.
+     */
+    public boolean isSamePerson(final RecipientEntry entry) {
+        return entry != null && mContactId == entry.mContactId;
     }
 }

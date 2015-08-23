@@ -17,14 +17,11 @@ package com.android.ex.chips.sample;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.os.Handler;
-import android.util.Log;
-import android.view.View;
-import android.widget.ImageButton;
+import android.text.util.Rfc822Tokenizer;
 import android.widget.MultiAutoCompleteTextView;
+
 import com.android.ex.chips.BaseRecipientAdapter;
 import com.android.ex.chips.RecipientEditTextView;
-import com.android.ex.chips.recipientchip.DrawableRecipientChip;
 
 public class MainActivity extends Activity {
 
@@ -33,31 +30,17 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        final RecipientEditTextView emailRetv =
+                (RecipientEditTextView) findViewById(R.id.email_retv);
+        emailRetv.setTokenizer(new Rfc822Tokenizer());
+        emailRetv.setAdapter(new BaseRecipientAdapter(this));
+
         final RecipientEditTextView phoneRetv =
                 (RecipientEditTextView) findViewById(R.id.phone_retv);
         phoneRetv.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());
-        BaseRecipientAdapter adapter = new BaseRecipientAdapter(BaseRecipientAdapter.QUERY_TYPE_PHONE, this);
-        adapter.setShowMobileOnly(true);
-        phoneRetv.setAdapter(adapter);
-        phoneRetv.dismissDropDownOnItemSelected(true);
-
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                DrawableRecipientChip[] chips = phoneRetv.getSortedRecipients();
-                for (DrawableRecipientChip chip : chips) {
-                    Log.v("DrawableChip", chip.getEntry().getDisplayName() + " " + chip.getEntry().getDestination());
-                }
-            }
-        }, 5000);
-
-        final ImageButton showAll = (ImageButton) findViewById(R.id.show_all);
-        showAll.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                phoneRetv.showAllContacts();
-            }
-        });
+        phoneRetv.setAdapter(
+                new BaseRecipientAdapter(BaseRecipientAdapter.QUERY_TYPE_PHONE, this));
     }
 
 }
+
