@@ -36,4 +36,6 @@
     <dimen name="chip_wrapper_top_padding">16dp</dimen>
     <dimen name="chip_wrapper_end_padding">16dp</dimen>
     <dimen name="chip_wrapper_bottom_padding">16dp</dimen>
+
+    <dimen name="avatar_width_height">40dip</dimen>
 </resources>

@@ -9,7 +9,8 @@ buildscript {
 apply plugin: 'com.android.library'
 
 dependencies {
-    compile 'com.android.support:support-v4:20.0.0'
+    compile 'com.android.support:support-v4:22.0.0'
+    compile 'com.android.support:appcompat-v7:22.0.0'
 }
 
 android {
@@ -29,8 +30,8 @@ android {
     }
 
     defaultConfig {
-        minSdkVersion 14
-        targetSdkVersion 20
+        minSdkVersion 17
+        targetSdkVersion 22
     }
 
     lintOptions {

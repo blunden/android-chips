@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 The Android Open Source Project
+ * Copyright (C) 2015 blunden
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,30 +18,25 @@ package com.android.ex.chips.sample;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.text.util.Rfc822Tokenizer;
-import android.widget.MultiAutoCompleteTextView;
 
 import com.android.ex.chips.BaseRecipientAdapter;
-import com.android.ex.chips.RecipientEditTextView;
+import com.android.ex.chips.RecipientsEditor;
 
 public class MainActivity extends Activity {
+    private RecipientsEditor mRecipientsEditor;
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        final RecipientEditTextView emailRetv =
-                (RecipientEditTextView) findViewById(R.id.email_retv);
-        emailRetv.setTokenizer(new Rfc822Tokenizer());
-        emailRetv.setAdapter(new BaseRecipientAdapter(this));
-
-        final RecipientEditTextView phoneRetv =
-                (RecipientEditTextView) findViewById(R.id.phone_retv);
-        phoneRetv.setTokenizer(new MultiAutoCompleteTextView.CommaTokenizer());
-        phoneRetv.setAdapter(
-                new BaseRecipientAdapter(BaseRecipientAdapter.QUERY_TYPE_PHONE, this));
+        mRecipientsEditor = (RecipientsEditor) findViewById(R.id.phone_retv);
+        initRecipientsEditor();
     }
 
+    // Get the recipients editor ready to be displayed onscreen.
+    private void initRecipientsEditor() {
+        mRecipientsEditor.setAdapter(new BaseRecipientAdapter(BaseRecipientAdapter.QUERY_TYPE_PHONE, this));
+        mRecipientsEditor.setText(null);
+    }
 }
-
