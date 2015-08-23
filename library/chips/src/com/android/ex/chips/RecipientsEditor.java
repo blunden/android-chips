@@ -174,6 +174,10 @@ public class RecipientsEditor extends RecipientEditTextView {
         return mTokenizer.getNumbers();
     }
 
+    public String getFirstRecipientNumber() {
+        return getNumbers().get(0);
+    }
+
     public String getExsitNumbers(){
         return mTokenizer.getNumbersString();
     }
@@ -196,32 +200,17 @@ public class RecipientsEditor extends RecipientEditTextView {
     private boolean hasInvalidCharacter(String number) {
         char[] charNumber = number.trim().toCharArray();
         int count = charNumber.length;
-        //if (mContext.getResources().getBoolean(R.bool.config_filter_char_address)) {
-        if(true) {
-            for (int i = 0; i < count; i++) {
-                // Allow first character is + character
-                if (i == 0 && charNumber[i] == '+') {
-                    continue;
-                }
-                if (!isValidCharacter(charNumber[i])) {
-                    return true;
-                }
+
+        for (int i = 0; i < count; i++) {
+            // Allow first character is + character
+            if (i == 0 && charNumber[i] == '+') {
+                continue;
             }
-        } else {
-            for (int i = 0; i < count; i++) {
-                if (isSBCCharacter(charNumber, i)) {
-                    return true;
-                }
+            if (!isValidCharacter(charNumber[i])) {
+                return true;
             }
         }
         return false;
-    }
-
-    /**
-     * Return true if the charNumber belongs full-width characters
-     */
-    private boolean isSBCCharacter(char[] charNumber, int i) {
-        return charNumber[i] >= SBC_CHAR_START && charNumber[i] <= SBC_CHAR_END;
     }
 
     private boolean isValidCharacter(char c) {
@@ -261,24 +250,6 @@ public class RecipientsEditor extends RecipientEditTextView {
 
         return super.onTouchEvent(ev);
     }
-
-    /*@Override
-    protected ContextMenuInfo getContextMenuInfo() {
-        if ((mLongPressedPosition >= 0)) {
-            Spanned text = getText();
-            if (mLongPressedPosition <= text.length()) {
-                int start = mTokenizer.findTokenStart(text, mLongPressedPosition);
-                int end = mTokenizer.findTokenEnd(text, start);
-
-                if (end != start) {
-                    String number = getNumberAt(getText(), start, end, getContext());
-                    Contact c = Contact.get(number, false);
-                    return new RecipientContextMenuInfo(c);
-                }
-            }
-        }
-        return null;
-    }*/
 
     /**
      * Replaces all unicode(e.g. Arabic, Persian) digits with their decimal digit equivalents.
@@ -344,9 +315,9 @@ public class RecipientsEditor extends RecipientEditTextView {
     }
 
     private static String getAnnotation(Annotation[] a, String key) {
-        for (int i = 0; i < a.length; i++) {
-            if (a[i].getKey().equals(key)) {
-                return a[i].getValue();
+        for (Annotation annotation : a) {
+            if (annotation.getKey().equals(key)) {
+                return annotation.getValue();
             }
         }
 
@@ -485,7 +456,7 @@ public class RecipientsEditor extends RecipientEditTextView {
                 char c;
                 if ((i == len) || ((c = sp.charAt(i)) == ',') || (c == ';')) {
                     if (i > start) {
-                        sb.append("'" + getNumberAt(sp, start, i, mContext) + "',");
+                        sb.append("'").append(getNumberAt(sp, start, i, mContext)).append("',");
                         // calculate the recipients total length. This is so if
                         // the name contains
                         // commas or semis, we'll skip over the whole name to
@@ -514,12 +485,4 @@ public class RecipientsEditor extends RecipientEditTextView {
             return (sb.length() != 0) ? (sb.deleteCharAt(sb.length() - 1).toString()) : null;
         }
     }
-
-    /*static class RecipientContextMenuInfo implements ContextMenuInfo {
-        final Contact recipient;
-
-        RecipientContextMenuInfo(Contact r) {
-            recipient = r;
-        }
-    }*/
 }
