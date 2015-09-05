@@ -47,7 +47,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Parcelable;
-import android.telephony.PhoneNumberUtils;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.Layout;
@@ -100,7 +99,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -1258,8 +1256,12 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
 
     private String tokenizeAddress(String destination) {
         if (getAdapter().isPhoneQuery() && isPhoneNumber(destination)) {
-            return PhoneNumberUtils.formatNumberToE164(destination,
-                Locale.getDefault().getCountry());
+            //return PhoneNumberUtils.formatNumberToE164(destination,
+            //    Locale.getDefault().getCountry());
+            // TODO: The code above requires API level 21. Do some simple cleanup for now
+            String[] invalid = {"-", " "};
+            String[] valid = {"", ""};
+            return TextUtils.replace(destination, invalid, valid).toString();
         } else {
             Rfc822Token[] tokens = Rfc822Tokenizer.tokenize(destination);
             if (tokens != null && tokens.length > 0) {
@@ -1660,6 +1662,7 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
     private void showAlternates(final DrawableRecipientChip currentChip,
             final ListPopupWindow alternatesPopup) {
         new AsyncTask<Void, Void, ListAdapter>() {
+            @SuppressWarnings("ResourceType")
             @Override
             protected ListAdapter doInBackground(final Void... params) {
                 return createAlternatesAdapter(currentChip);
@@ -2694,6 +2697,7 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
             // chip.
             final ArrayList<DrawableRecipientChip> recipients =
                     new ArrayList<DrawableRecipientChip>();
+            //noinspection ResourceType
             DrawableRecipientChip[] existingChips = getSortedRecipients();
             for (int i = 0; i < existingChips.length; i++) {
                 recipients.add(existingChips[i]);
@@ -2706,9 +2710,11 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
             for (int i = 0; i < recipients.size(); i++) {
                 chip = recipients.get(i);
                 if (chip != null) {
+                    //noinspection ResourceType
                     addresses.add(createAddressText(chip.getEntry()));
                 }
             }
+            //noinspection ResourceType
             final BaseRecipientAdapter adapter = getAdapter();
             adapter.getMatchingRecipients(addresses, new RecipientMatchCallback() {
                         @Override
@@ -2833,9 +2839,11 @@ public class RecipientEditTextView extends MultiAutoCompleteTextView implements
             for (int i = 0; i < originalRecipients.size(); i++) {
                 chip = originalRecipients.get(i);
                 if (chip != null) {
+                    //noinspection ResourceType
                     addresses.add(createAddressText(chip.getEntry()));
                 }
             }
+            //noinspection ResourceType
             final BaseRecipientAdapter adapter = getAdapter();
             adapter.getMatchingRecipients(addresses, new RecipientMatchCallback() {
 
